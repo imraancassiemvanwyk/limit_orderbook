@@ -14,15 +14,6 @@ O(1)
 
 Executing the order is done by popping the front of the queue and deleting or changing values in the hashmap which is all O(1)
 
-# Performance
-Performance tests were done an old pc with ryzen 3600 CPu
-
-
-add - 1.117 million /s
-
-cancel - 5 million /s
-
-execute - 2 million/s
 
 
 

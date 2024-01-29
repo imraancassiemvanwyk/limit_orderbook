@@ -1,15 +1,13 @@
 #include "limitbook.h"
 
 
-    std::vector<std::pair<int, std::list<int>>> buyTree;
-    std::vector<std::pair<int, std::list<int>>> sellTree;
+    std::vector<std::pair<int, std::list<Order>>> buyTree;
+    std::vector<std::pair<int, std::list<Order>>> sellTree;
     int lowestSell;
     int highestBuy;
     int upper_limit;
     int lower_limit;
     double tick_rate;
-    std::unordered_map<int, Order> buymap;
-    std::unordered_map<int, Order> sellmap;
 
     void Book::initailise()
     {
@@ -22,16 +20,14 @@
     {
         if (ord.buyOrSell)
         {
-            buymap.insert({ ord.idNumber, ord });
-            buyTree[(ord.limit / tick_rate) - 1].second.push_back(ord.idNumber);
-            buyTree[(ord.limit / tick_rate) - 1].first += ord.shares;
+            buyTree[((ord.limit-lower_limit) / tick_rate) - 1].second.push_back(ord);
+            buyTree[((ord.limit - lower_limit) / tick_rate) - 1].first += ord.shares;
             if (ord.limit < lowestSell)lowestSell = ord.limit;
         }
         else
         {
-            sellTree[(ord.limit / tick_rate) - 1].second.push_back(ord.idNumber);
-            sellTree[(ord.limit / tick_rate) - 1].first += ord.shares;
-            sellmap.insert({ ord.idNumber, ord });
+            sellTree[((ord.limit - lower_limit) / tick_rate) - 1].second.push_back(ord);
+            sellTree[((ord.limit - lower_limit) / tick_rate) - 1].first += ord.shares;
             if (ord.limit > highestBuy)highestBuy = ord.limit;
         }
     }
@@ -40,13 +36,23 @@
     {
         if (ord.buyOrSell)
         {
-            buyTree[(ord.limit / tick_rate) - 1].first -= ord.shares;
-            buymap[ord.idNumber].cancelled = true;
+            Order temp = ord;
+            temp.cancelled = true;
+            buyTree[((ord.limit - lower_limit) / tick_rate) - 1].first -= ord.shares;
+            auto itr = std::find(
+                buyTree[((ord.limit - lower_limit) / tick_rate) - 1].second.begin(), 
+                buyTree[((ord.limit - lower_limit) / tick_rate) - 1].second.end(), ord);
+            *itr = temp;
         }
         else
         {
-            sellTree[(ord.limit / tick_rate) - 1].first -= ord.shares;
-            sellmap[ord.idNumber].cancelled = true;
+            Order temp = ord;
+            temp.cancelled = true;
+            sellTree[((ord.limit - lower_limit) / tick_rate) - 1].first -= ord.shares;
+            auto itr = std::find(
+                sellTree[((ord.limit - lower_limit) / tick_rate) - 1].second.begin(),
+                sellTree[((ord.limit - lower_limit) / tick_rate) - 1].second.end(), ord);
+            *itr = temp;
         }
     }
 
@@ -57,13 +63,11 @@
         {
             if (ord.buyOrSell)
             {
-                buyTree[(ord.limit / tick_rate) - 1].second.pop_front();
-                buymap.erase(ord.idNumber);
+                buyTree[((ord.limit - lower_limit) / tick_rate) - 1].second.pop_front();
             }
             else
             {
-                sellTree[(ord.limit / tick_rate) - 1].second.pop_front();
-                sellmap.erase(ord.idNumber);
+                sellTree[((ord.limit - lower_limit) / tick_rate) - 1].second.pop_front();
             }
             return false;
         }
@@ -71,28 +75,26 @@
         {
             if (ord.buyOrSell)
             {
-                buyTree[(ord.limit / tick_rate) - 1].first -= shares;
-                if (buymap[ord.idNumber].shares == shares)
+                buyTree[((ord.limit - lower_limit) / tick_rate) - 1].first -= shares;
+                if (buyTree[((ord.limit - lower_limit) / tick_rate) - 1].second.front().shares == shares)
                 {
-                    buyTree[(ord.limit / tick_rate) - 1].second.pop_front();
-                    buymap.erase(ord.idNumber);
+                    buyTree[((ord.limit - lower_limit) / tick_rate) - 1].second.pop_front();
                 }
                 else
                 {
-                    buymap[ord.idNumber].shares -= shares;
+                    buyTree[((ord.limit - lower_limit) / tick_rate) - 1].second.front().shares -= shares;
                 }
             }
             else
             {
-                sellTree[(ord.limit / tick_rate) - 1].first -= shares;
-                if (sellmap[ord.idNumber].shares == shares)
+                sellTree[((ord.limit - lower_limit) / tick_rate) - 1].first -= shares;
+                if (sellTree[((ord.limit - lower_limit) / tick_rate) - 1].second.front().shares == shares)
                 {
-                    sellTree[(ord.limit / tick_rate) - 1].second.pop_front();
-                    sellmap.erase(ord.idNumber);
+                    sellTree[((ord.limit - lower_limit) / tick_rate) - 1].second.pop_front();
                 }
                 else
                 {
-                    sellmap[ord.idNumber].shares -= shares;
+                    sellTree[((ord.limit - lower_limit) / tick_rate) - 1].second.front().shares -= shares;
                 }
             }
             return true;
